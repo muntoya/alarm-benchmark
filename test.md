@@ -1,7 +1,7 @@
 
 # Madoko
 
-- [ ] wa
+- [X] wa
 - [ ] yi
 
 <kbd>a</kbd>
