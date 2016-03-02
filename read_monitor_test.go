@@ -17,12 +17,12 @@ func BenchmarkReadMonitorConfig(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	once := 100
-	s := make([]interface{}, once * 2 + 1)
+	size := 100
+	s := make([]interface{}, size * 2 + 1)
 	s[0] = "int"
 
-	for i := 0; i < 10000; i += once {
-		for j := 0; j < once; j++ {
+	for i := 0; i < 10000; i += size {
+		for j := 0; j < size; j++ {
 			s[j * 2 + 1] = strconv.Itoa(j + i)
 			s[j * 2 + 2] = bb
 		}

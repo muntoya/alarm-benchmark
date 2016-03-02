@@ -6,19 +6,8 @@ import (
 	//	"strings"
 	"fmt"
 	"math/rand"
-	"time"
 	"sync"
 )
-
-type alarm struct {
-	id            int
-	expression_id int
-	create_time   time.Time
-	note          string
-	host          string
-	node          string
-	filter        bool
-}
 
 const (
 	dep_host int = iota
@@ -37,14 +26,7 @@ func BenchmarkDepAlarm(b *testing.B) {
 	depCnt := 512
 
 	//初始化报警
-	alarms := make([]alarm, alarmCnt)
-	for i := 0; i < alarmCnt; i++ {
-		alarms[i].id = i
-		alarms[i].expression_id = rand.Int() % 50
-		alarms[i].note = "sssssssssssssssssssssssss"
-		alarms[i].host = fmt.Sprintf("host-host-xxx-wocao-%d", rand.Int31n(10))
-		alarms[i].node = fmt.Sprintf("node%d", rand.Int31n(5))
-	}
+	alarms := newAlarms(alarmCnt)
 
 	//初始化依赖规则
 	deps := make([]dep, depCnt)
