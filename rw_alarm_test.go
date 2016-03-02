@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"github.com/garyburd/redigo/redis"
+	"strings"
 )
 
 
@@ -19,8 +20,8 @@ type alarm struct {
 	filter        bool
 }
 
-//测试大量写报警的性能
-func BenchmarkWriteAlarms(b *testing.B) {
+//测试大量写报警的性能,报警使用hash存储
+func BenchmarkWriteHashAlarms(b *testing.B) {
 	conn, err := redis.Dial("tcp", "127.0.0.1:6379")
 	if err != nil {
 		b.Fatal(err)
@@ -30,16 +31,41 @@ func BenchmarkWriteAlarms(b *testing.B) {
 	alarms := newAlarms(alarmCnt)
 	size := 20
 
-	for t := 0; t < 10; t++ {
-		for i := 0; i < alarmCnt; i += size {
-			for s := i; s < i + size; s++ {
-				name := fmt.Sprintf("alarm%d", s)
-				conn.Send("hmset", name, "id", alarms[s].id, "host", alarms[s].host, "filter",
-					alarms[s].filter, "create_time", alarms[s].create_time.Unix(), "note",
-					alarms[s].note, "node", alarms[s].node, "expression_id", alarms[s].expression_id)
-			}
+	b.ResetTimer()
+	for i := 0; i < alarmCnt; i += size {
+		for s := i; s < i + size; s++ {
+			name := fmt.Sprintf("alarm%d", s)
+			conn.Send("hmset", name, "id", alarms[s].id, "host", alarms[s].host, "filter",
+				alarms[s].filter, "create_time", alarms[s].create_time.Unix(), "note",
+				alarms[s].note, "node", alarms[s].node, "expression_id", alarms[s].expression_id)
+			conn.Flush()
 		}
 	}
+	conn.Receive()
+
+	fmt.Println("end")
+}
+
+//测试大量写报警的性能,报警使用单个value存储
+func BenchmarkWriteJsonAlarms(b *testing.B) {
+	conn, err := redis.Dial("tcp", "127.0.0.1:6379")
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	alarmCnt := 100000
+	size := 40
+
+	content := strings.Repeat("sssssssssssssssssssssss", 10)
+	for i := 0; i < alarmCnt; i += size {
+		for s := i; s < i + size; s++ {
+			name := fmt.Sprintf("alarm%d", s)
+			conn.Send("set", name, content)
+		}
+		conn.Flush()
+	}
+	conn.Receive()
+
 	fmt.Println("end")
 }
 
