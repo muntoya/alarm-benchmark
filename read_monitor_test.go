@@ -8,8 +8,8 @@ import (
 	"fmt"
 )
 
-//测试大量监控数据在redis中的读写效率
-func BenchmarkReadMonitor(b *testing.B) {
+//测试大量监控配置数据在redis中的读写效率
+func BenchmarkReadMonitorConfig(b *testing.B) {
 	bb := strings.Repeat("ssssssssss", 5000)
 
 	conn, err := redis.Dial("tcp", "127.0.0.1:6379")
