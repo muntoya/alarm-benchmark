@@ -22,7 +22,7 @@ type dep struct {
 }
 
 func BenchmarkDepAlarm(b *testing.B) {
-	alarmCnt := 100000
+	alarmCnt := 10000
 	depCnt := 512
 
 	//初始化报警
@@ -38,7 +38,7 @@ func BenchmarkDepAlarm(b *testing.B) {
 
 	b.ResetTimer()
 
-	//建立索引
+	//为报警建立索引
 	idMap := make(map[int][]*alarm)
 	for i := 0; i < alarmCnt; i++ {
 		idMap[alarms[i].Expression_id] = append(idMap[alarms[i].Expression_id], &alarms[i])
@@ -54,56 +54,73 @@ func BenchmarkDepAlarm(b *testing.B) {
 		nodeMap[alarms[i].Node] = append(nodeMap[alarms[i].Node], &alarms[i])
 	}
 
-	//应用配置
 	cpuCnt := 4
+
+	//为规则建立索引
+	depsMapMap := make([]map[int][]*dep, cpuCnt)
+	for i := 0; i < cpuCnt; i++ {
+		depsMapMap[i] = make(map[int][]*dep)
+	}
+
+	for i := 0; i < depCnt; i++ {
+		depsMap := depsMapMap[deps[i].a_id % cpuCnt]
+		depsMap[deps[i].a_id] = append(depsMap[deps[i].a_id], &deps[i])
+	}
+
+	//应用配置
+
 	g := &sync.WaitGroup{}
 	g.Add(cpuCnt)
 	for i := 0; i < cpuCnt; i++ {
-		depsSlice := deps[depCnt/cpuCnt*i:depCnt/cpuCnt*(i+1)]
-		go depAlarm(depsSlice, alarms, idMap, hostMap, nodeMap, g)
+		//depsSlice := deps[depCnt/cpuCnt*i:depCnt/cpuCnt*(i+1)]
+		go depAlarm(idMap, hostMap, nodeMap, depsMapMap[i], g)
 	}
 	g.Wait()
 
 	fmt.Println("end")
 }
 
-func depAlarm(deps []dep, alarms []alarm, idMap map[int][]*alarm, hostMap map[string][]*alarm,
-	nodeMap map[string][]*alarm, g *sync.WaitGroup) {
-	for _, dep := range deps {
-		aAlarms, ok := idMap[dep.a_id]
+func depAlarm(idMap map[int][]*alarm, hostMap map[string][]*alarm,
+	nodeMap map[string][]*alarm, depsMap map[int][]*dep, g *sync.WaitGroup) {
+	fmt.Println("len", len(depsMap))
+	for aid, depList := range depsMap {
+		aAlarms, ok := idMap[aid]
 		if !ok {
 			continue
 		}
+		for _, dep := range depList {
+			bAlarms := idMap[dep.b_id]
+			if len(bAlarms) == 0 {
+				continue
+			}
 
-		bAlarms, ok := idMap[dep.b_id]
-		if !ok {
-			continue
-		}
-
-		switch dep.dep_type {
-		case dep_host:
-			for a := range aAlarms {
-				for b := range bAlarms {
-					if bAlarms[b].Host == aAlarms[a].Host {
-						bAlarms[b].Filter = true
+			switch dep.dep_type {
+			case dep_host:
+				for a := range aAlarms {
+					for b := range bAlarms {
+						if bAlarms[b].Host == aAlarms[a].Host {
+							bAlarms[b].Filter = true
+						}
 					}
 				}
-			}
-		case dep_node:
-			for a := range aAlarms {
-				for b := range bAlarms {
-					if bAlarms[b].Node == aAlarms[a].Node {
-						bAlarms[b].Filter = true
+			case dep_node:
+				for a := range aAlarms {
+					for b := range bAlarms {
+						if bAlarms[b].Node == aAlarms[a].Node {
+							bAlarms[b].Filter = true
+						}
 					}
 				}
+			case dep_all:
+				for b := range bAlarms {
+					bAlarms[b].Filter = true
+				}
+			default:
+
 			}
-		case dep_all:
-			for b := range bAlarms {
-				bAlarms[b].Filter = true
-			}
-		default:
 
 		}
 	}
+
 	g.Done()
 }
