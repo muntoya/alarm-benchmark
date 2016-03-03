@@ -41,17 +41,17 @@ func BenchmarkDepAlarm(b *testing.B) {
 	//建立索引
 	idMap := make(map[int][]*alarm)
 	for i := 0; i < alarmCnt; i++ {
-		idMap[alarms[i].expression_id] = append(idMap[alarms[i].expression_id], &alarms[i])
+		idMap[alarms[i].Expression_id] = append(idMap[alarms[i].Expression_id], &alarms[i])
 	}
 
 	hostMap := make(map[string][]*alarm)
 	for i := 0; i < alarmCnt; i++ {
-		hostMap[alarms[i].host] = append(hostMap[alarms[i].host], &alarms[i])
+		hostMap[alarms[i].Host] = append(hostMap[alarms[i].Host], &alarms[i])
 	}
 
 	nodeMap := make(map[string][]*alarm)
 	for i := 0; i < alarmCnt; i++ {
-		nodeMap[alarms[i].node] = append(nodeMap[alarms[i].node], &alarms[i])
+		nodeMap[alarms[i].Node] = append(nodeMap[alarms[i].Node], &alarms[i])
 	}
 
 	//应用配置
@@ -84,22 +84,22 @@ func depAlarm(deps []dep, alarms []alarm, idMap map[int][]*alarm, hostMap map[st
 		case dep_host:
 			for a := range aAlarms {
 				for b := range bAlarms {
-					if bAlarms[b].host == aAlarms[a].host {
-						bAlarms[b].filter = true
+					if bAlarms[b].Host == aAlarms[a].Host {
+						bAlarms[b].Filter = true
 					}
 				}
 			}
 		case dep_node:
 			for a := range aAlarms {
 				for b := range bAlarms {
-					if bAlarms[b].node == aAlarms[a].node {
-						bAlarms[b].filter = true
+					if bAlarms[b].Node == aAlarms[a].Node {
+						bAlarms[b].Filter = true
 					}
 				}
 			}
 		case dep_all:
 			for b := range bAlarms {
-				bAlarms[b].filter = true
+				bAlarms[b].Filter = true
 			}
 		default:
 

@@ -1,23 +1,22 @@
 package alarm_benchmark
 
 import (
-	"testing"
-	"time"
 	"fmt"
 	"math/rand"
+	"testing"
+	"time"
+	"encoding/json"
 	"github.com/garyburd/redigo/redis"
-	"strings"
 )
 
-
 type alarm struct {
-	id            int
-	expression_id int
-	create_time   time.Time
-	note          string
-	host          string
-	node          string
-	filter        bool
+	Id            int       `json:"id"`
+	Expression_id int       `json:"expression_id"`
+	Create_time   time.Time `json:"create_time"`
+	Note          string    `json:"note"`
+	Host          string    `json:"host"`
+	Node          string    `json:"node"`
+	Filter        bool      `json:"filter"`
 }
 
 //测试大量写报警的性能,报警使用hash存储
@@ -33,11 +32,11 @@ func BenchmarkWriteHashAlarms(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < alarmCnt; i += size {
-		for s := i; s < i + size; s++ {
+		for s := i; s < i+size; s++ {
 			name := fmt.Sprintf("alarm%d", s)
-			conn.Send("hmset", name, "id", alarms[s].id, "host", alarms[s].host, "filter",
-				alarms[s].filter, "create_time", alarms[s].create_time.Unix(), "note",
-				alarms[s].note, "node", alarms[s].node, "expression_id", alarms[s].expression_id)
+			conn.Send("hmset", name, "id", alarms[s].Id, "host", alarms[s].Host, "filter",
+				alarms[s].Filter, "create_time", alarms[s].Create_time.Unix(), "note",
+				alarms[s].Note, "node", alarms[s].Node, "expression_id", alarms[s].Expression_id)
 			conn.Flush()
 		}
 	}
@@ -54,12 +53,13 @@ func BenchmarkWriteJsonAlarms(b *testing.B) {
 	}
 
 	alarmCnt := 100000
+	alarms := newAlarms(alarmCnt)
 	size := 40
 
-	content := strings.Repeat("sssssssssssssssssssssss", 10)
 	for i := 0; i < alarmCnt; i += size {
-		for s := i; s < i + size; s++ {
+		for s := i; s < i+size; s++ {
 			name := fmt.Sprintf("alarm%d", s)
+			content, _ := json.Marshal(&alarms[s])
 			conn.Send("set", name, content)
 		}
 		conn.Flush()
@@ -73,11 +73,11 @@ func BenchmarkWriteJsonAlarms(b *testing.B) {
 func newAlarms(cnt int) []alarm {
 	alarms := make([]alarm, cnt)
 	for i := 0; i < cnt; i++ {
-		alarms[i].id = i
-		alarms[i].expression_id = rand.Int() % 50
-		alarms[i].note = "sssssssssssssssssssssssss"
-		alarms[i].host = fmt.Sprintf("host-host-xxx-wocao-%d", rand.Int31n(10))
-		alarms[i].node = fmt.Sprintf("node%d", rand.Int31n(5))
+		alarms[i].Id = i
+		alarms[i].Expression_id = rand.Int() % 50
+		alarms[i].Note = "sssssssssssssssssssssssss"
+		alarms[i].Host = fmt.Sprintf("host-host-xxx-wocao-%d", rand.Int31n(10))
+		alarms[i].Node = fmt.Sprintf("node%d", rand.Int31n(5))
 	}
 	return alarms
 }
